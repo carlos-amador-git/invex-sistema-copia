@@ -1,39 +1,17 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from .config import get_settings
-from .database import engine, Base, SessionLocal
-from .routers import (
-    auth_router,
-    usuarios_router,
-    productos_router,
-    proveedores_router,
-    inventario_router,
-    capturas_router,
-    ordenes_router,
-    roles_router,
-    snapshots_router,
-    materiales_router,
-    procesos_bau_router,
-    inventario_historial_router
-)
-from .models import Usuario, Rol
-from .utils.security import get_password_hash
-import json
+"""
+Script para ejecutar seed en PostgreSQL en Render
+Se ejecuta automáticamente al iniciar el servidor
+"""
+import sys
+import os
+from sqlalchemy.orm import Session
 from datetime import datetime
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-settings = get_settings()
-
-# Crear tablas
-Base.metadata.create_all(bind=engine)
-
-# Crear aplicación FastAPI
-app = FastAPI(
-    title="INVEX API",
-    description="API REST para el Sistema de Control de Inventario de Tarjetas Bancarias",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
+from app.database import SessionLocal, engine, Base
+from app.models import Usuario, Rol, Proveedor, Producto, Inventario
+from app.utils.security import get_password_hash
+import json
 
 def seed_database():
     """Crear datos iniciales si no existen"""
@@ -42,7 +20,10 @@ def seed_database():
         # Verificar si hay usuarios
         user_count = db.query(Usuario).count()
         if user_count > 0:
+            print(f"Base de datos ya tiene {user_count} usuarios. No se ejecuta seed.")
             return
+
+        print("Base de datos vacía. Ejecutando seed...")
 
         # Crear roles
         roles_data = [
@@ -93,6 +74,7 @@ def seed_database():
             if not existing:
                 db.add(Rol(**rol_data))
         db.commit()
+        print("✓ Roles creados")
 
         # Crear usuarios
         usuarios_data = [
@@ -108,64 +90,15 @@ def seed_database():
             if not existing:
                 db.add(Usuario(**user_data))
         db.commit()
+        print("✓ Usuarios creados")
+
+        print("✅ Seed completado exitosamente!")
 
     except Exception as e:
-        print(f"Error seeding database: {e}")
+        print(f"❌ Error durante el seed: {e}")
         db.rollback()
     finally:
         db.close()
 
-@app.on_event("startup")
-async def startup_event():
-    """Ejecutar seed en startup si no hay usuarios"""
+if __name__ == "__main__":
     seed_database()
-
-# Configurar CORS
-origins = settings.CORS_ORIGINS.split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Registrar routers
-app.include_router(auth_router, prefix="/api")
-app.include_router(usuarios_router, prefix="/api")
-app.include_router(productos_router, prefix="/api")
-app.include_router(proveedores_router, prefix="/api")
-app.include_router(inventario_router, prefix="/api")
-app.include_router(capturas_router, prefix="/api")
-app.include_router(ordenes_router, prefix="/api")
-app.include_router(roles_router, prefix="/api")
-app.include_router(snapshots_router, prefix="/api")
-app.include_router(materiales_router, prefix="/api")
-app.include_router(procesos_bau_router, prefix="/api")
-app.include_router(inventario_historial_router, prefix="/api")
-
-
-@app.get("/")
-async def root():
-    return {
-        "message": "INVEX API - Sistema de Control de Inventario",
-        "version": "1.0.0",
-        "docs": "/docs"
-    }
-
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
-
-
-@app.get("/debug/users")
-async def debug_users():
-    """Endpoint de debug para verificar usuarios en la BD"""
-    db = SessionLocal()
-    try:
-        users = db.query(Usuario).all()
-        user_list = [{"username": u.username, "nombre": u.nombre, "rol": u.rol, "activo": u.activo} for u in users]
-        return {"count": len(user_list), "users": user_list}
-    finally:
-        db.close()
