@@ -7,13 +7,9 @@ current_dir = Path(__file__).parent
 backend_dir = current_dir.parent / "backend"
 sys.path.insert(0, str(backend_dir))
 
+# Importar aplicación FastAPI
 from app.main import app
 
-# Vercel handler - required for deployment
-app_handler = app
+# Handler para Vercel - ASGI application
+# Vercel espera un handler que sea callable
 handler = app
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
-
