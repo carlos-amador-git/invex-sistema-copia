@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
-from .database import engine, Base
+from .database import engine, Base, SessionLocal
 from .routers import (
     auth_router,
     usuarios_router,
@@ -16,6 +16,7 @@ from .routers import (
     procesos_bau_router,
     inventario_historial_router
 )
+from .models import Usuario
 
 settings = get_settings()
 
@@ -30,6 +31,21 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Ejecutar seed en startup si no hay usuarios"""
+    db = SessionLocal()
+    try:
+        user_count = db.query(Usuario).count()
+        if user_count == 0:
+            import os
+            import sys
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+            from migrations.seed_data import main as seed_main
+            seed_main()
+    finally:
+        db.close()
 
 # Configurar CORS
 origins = settings.CORS_ORIGINS.split(",")
