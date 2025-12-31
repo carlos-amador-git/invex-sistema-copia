@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: invex-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://invex-sistema.vercel.app
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invex-db
+          property: connectionString
+  - type: web
+    name: invex-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    publishDir: build
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: invex-backend
+          property: url
+
+databases:
+  - name: invex-db
+    databaseName: invex
+    user: invex_user

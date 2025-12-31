@@ -5,11 +5,17 @@ from .config import get_settings
 
 settings = get_settings()
 
-# Crear engine SQLite
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args={"check_same_thread": False}  # Necesario para SQLite
-)
+# Determinar si es PostgreSQL o SQLite
+is_postgres = settings.DATABASE_URL.startswith("postgresql://")
+
+# Crear engine con configuración apropiada
+if is_postgres:
+    engine = create_engine(settings.DATABASE_URL)
+else:
+    engine = create_engine(
+        settings.DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
 
 # Crear sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

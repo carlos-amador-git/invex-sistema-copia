@@ -117,8 +117,10 @@ def seed_database():
 
 @app.on_event("startup")
 async def startup_event():
-    """Ejecutar seed en startup"""
-    seed_database()
+    """Ejecutar seed en startup solo para desarrollo/local"""
+    is_postgres = settings.DATABASE_URL.startswith("postgresql://")
+    if not is_postgres:
+        seed_database()
 
 # Configurar CORS
 origins = settings.CORS_ORIGINS.split(",")

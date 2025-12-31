@@ -5,6 +5,8 @@ from functools import lru_cache
 
 
 def _default_database_url() -> str:
+    if os.getenv("DATABASE_URL"):
+        return os.getenv("DATABASE_URL", "")
     if os.getenv("VERCEL"):
         return "sqlite:////tmp/invex.db"
     return "sqlite:///./invex.db"
@@ -16,7 +18,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     BCRYPT_ROUNDS: int = 12
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,https://invex-sistema.vercel.app"
     ALGORITHM: str = "HS256"
 
     class Config:
