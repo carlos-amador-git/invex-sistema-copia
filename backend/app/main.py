@@ -269,3 +269,11 @@ async def debug_cors():
         "cors_origins_parsed": origins,
         "backend_url": settings.DATABASE_URL
     }
+
+@app.get("/public/config")
+async def public_config():
+    """Endpoint público para verificar configuración sin CORS"""
+    return {
+        "cors_origins": settings.CORS_ORIGINS,
+        "message": "If you see this, the backend is working!"
+    }
