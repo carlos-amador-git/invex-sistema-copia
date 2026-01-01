@@ -53,7 +53,9 @@ const Sidebar = ({ activeModule, setActiveModule }) => {
   ];
 
   // Filtrar menú según rol del usuario
-  const menuItems = allMenuItems.filter(item => item.roles.includes(currentUser.rol));
+  const menuItems = currentUser?.rol
+    ? allMenuItems.filter(item => item.roles.includes(currentUser.rol))
+    : [];
 
   // Obtener iniciales del usuario
   const getInitials = (name) => {
@@ -93,16 +95,18 @@ const Sidebar = ({ activeModule, setActiveModule }) => {
         </div>
 
         {/* Role Badge */}
-        <div
-          className="role-badge"
-          style={{
-            backgroundColor: roleConfig.color + '20',
-            color: roleConfig.color
-          }}
-        >
-          <span className="role-name">{roleConfig.nombre}</span>
-          <span className="role-area">{roleConfig.area}</span>
-        </div>
+        {roleConfig && (
+          <div
+            className="role-badge"
+            style={{
+              backgroundColor: roleConfig.color + '20',
+              color: roleConfig.color
+            }}
+          >
+            <span className="role-name">{roleConfig.nombre}</span>
+            <span className="role-area">{roleConfig.area}</span>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="sidebar-nav">
@@ -119,25 +123,27 @@ const Sidebar = ({ activeModule, setActiveModule }) => {
         </nav>
 
         {/* Footer */}
-        <div className="sidebar-footer">
-          <div className="user-info">
-            <div
-              className="user-avatar"
-              style={{
-                background: `linear-gradient(135deg, ${roleConfig.color}, ${roleConfig.color}cc)`
-              }}
-            >
-              {getInitials(currentUser.nombre)}
+        {currentUser && roleConfig && (
+          <div className="sidebar-footer">
+            <div className="user-info">
+              <div
+                className="user-avatar"
+                style={{
+                  background: `linear-gradient(135deg, ${roleConfig.color}, ${roleConfig.color}cc)`
+                }}
+              >
+                {getInitials(currentUser.nombre)}
+              </div>
+              <div className="user-details">
+                <span className="user-name">{currentUser.nombre}</span>
+                <span className="user-role">{roleConfig.area}</span>
+              </div>
             </div>
-            <div className="user-details">
-              <span className="user-name">{currentUser.nombre}</span>
-              <span className="user-role">{roleConfig.area}</span>
-            </div>
+            <button className="logout-btn" onClick={logout} title="Cerrar sesión">
+              <LogOut size={18} />
+            </button>
           </div>
-          <button className="logout-btn" onClick={logout} title="Cerrar sesión">
-            <LogOut size={18} />
-          </button>
-        </div>
+        )}
       </aside>
     </>
   );
