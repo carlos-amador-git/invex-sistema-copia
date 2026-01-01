@@ -5,13 +5,13 @@
 // Para desarrollo local con túnel:
 // - Cloudflare Tunnel: 'https://tu-tunel.trycloudflare.com'
 // - ngrok: 'https://tu-id.ngrok.io'
-// - Local: 'http://localhost:8000'
+// - Localtunnel: 'https://tu-url.loca.lt'
+// - O usa variable de entorno: REACT_APP_API_URL
 
 const API_CONFIG = {
-  // CAMBIA ESTA URL según tu backend
-  production: 'https://invex-backend.onrender.com',
+  production: 'https://TU-BACKEND.onrender.com',  // ← CAMBIAR después de deploy a Render
   development: 'http://localhost:8000',
-  tunnel: 'https://tu-url-de-tunel.trycloudflare.com'  // ← EDITAR con tu URL del túnel
+  tunnel: 'https://tu-url-de-tunel.trycloudflare.com'
 };
 
 // ==========================================
@@ -19,13 +19,13 @@ const API_CONFIG = {
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  // 1. Usar variable de entorno si existe
+  // 1. Usar variable de entorno si existe (útil para túneles)
   const envUrl = process.env.REACT_APP_API_URL;
   if (envUrl) {
     return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
   }
 
-  // 2. Detectar si es desarrollo local (localhost)
+  // 2. Detectar si estamos en desarrollo local (localhost)
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return API_CONFIG.development.endsWith('/api') 
       ? API_CONFIG.development 

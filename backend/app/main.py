@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from .config import get_settings
-from .database import engine, Base, SessionLocal
+from .database import get_session_local, get_base
 from .routers import (
     auth_router,
     usuarios_router,
@@ -23,9 +23,8 @@ import json
 from datetime import datetime
 
 settings = get_settings()
-
-# Mover creación de tablas al startup event para manejar errores de conexión
-# Base.metadata.create_all(bind=engine) 
+Base = get_base()
+SessionLocal = get_session_local()
 
 # Crear aplicación FastAPI
 app = FastAPI(
@@ -39,10 +38,9 @@ app = FastAPI(
 # Middleware manual para asegurar CORS incluso en errores
 @app.middleware("http")
 async def add_cors_headers(request: Request, call_next):
-    # Asegurar headers CORS para OPTIONS (Preflight)
     if request.method == "OPTIONS":
         origin = request.headers.get("origin")
-        if origin and ("onrender.com" in origin or "localhost" in origin or "127.0.0.1" in origin):
+        if origin and ("onrender.com" in origin or "localhost" in origin or "127.0.0.1" in origin or "vercel.app" in origin or "vercel.dev" in origin):
             return Response(
                 status_code=200,
                 headers={
@@ -64,11 +62,9 @@ async def add_cors_headers(request: Request, call_next):
             content={"detail": "Internal Server Error", "error": str(e)}
         )
     
-    # Asegurar headers CORS en respuesta
     origin = request.headers.get("origin")
     if origin:
-        # Permitir cualquier subdominio de onrender o localhost
-        if "onrender.com" in origin or "localhost" in origin or "127.0.0.1" in origin:
+        if "onrender.com" in origin or "localhost" in origin or "127.0.0.1" in origin or "vercel.app" in origin or "vercel.dev" in origin:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "*"
@@ -78,23 +74,8 @@ async def add_cors_headers(request: Request, call_next):
 
 @app.on_event("startup")
 async def startup_event():
-    """Inicializar base de datos y ejecutar seed"""
-    print(f"Iniciando aplicación. Environment: {settings.VERCEL_ENV or 'Local/Render'}")
-    
-    # Intentar conectar a la BD y crear tablas
-    try:
-        print("Creando tablas en base de datos...")
-        # Base.metadata.create_all(bind=engine)
-        print("✓ Tablas creadas correctamente (saltado por ahora)")
-    except Exception as e:
-        print(f"❌ Error crítico al conectar/crear tablas en BD: {e}")
-    
-    # Ejecutar seed
-    try:
-        seed_database()
-        print("✓ Seed de datos completado")
-    except Exception as e:
-        print(f"Error al ejecutar seed de datos: {e}")
+    print(f"Iniciando aplicación en {settings.VERCEL_ENV or 'local'} mode")
+    # No ejecutar seed en producción - los datos ya están en Neon
 
 def seed_database():
     """Crear datos iniciales si no existen"""
@@ -267,17 +248,12 @@ print(f"CORS Origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex="https://.*\.onrender\.com",
+    allow_origins=origins + ["https://*.vercel.app", "https://*.vercel.dev"],
+    allow_origin_regex="https://.*\.(onrender|vercel|vercel-dev)\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("startup")
-async def startup_event():
-    """Ejecutar seed en startup si no hay usuarios"""
-    seed_database()
 
 # Registrar routers
 app.include_router(auth_router, prefix="/api")
@@ -299,7 +275,8 @@ async def root():
     return {
         "message": "INVEX API - Sistema de Control de Inventario",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
+        "status": "running"
     }
 
 
