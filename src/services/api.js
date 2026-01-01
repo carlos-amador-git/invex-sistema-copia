@@ -9,7 +9,7 @@
 // - O usa variable de entorno: REACT_APP_API_URL
 
 const API_CONFIG = {
-  production: 'https://TU-BACKEND.onrender.com',  // ← CAMBIAR después de deploy a Render
+  production: 'https://invex-backend-9oa4.onrender.com',  // Backend en Render
   development: 'http://localhost:8000',
   tunnel: 'https://tu-url-de-tunel.trycloudflare.com'
 };
