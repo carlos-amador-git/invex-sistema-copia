@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from .config import get_settings
 from .database import engine, Base, SessionLocal
 from .routers import (
@@ -34,6 +35,30 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Middleware manual para asegurar CORS incluso en errores
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        print(f"Error no manejado en request: {e}")
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": "Internal Server Error", "error": str(e)}
+        )
+    
+    # Asegurar headers CORS
+    origin = request.headers.get("origin")
+    if origin:
+        # Permitir cualquier subdominio de onrender o localhost
+        if "onrender.com" in origin or "localhost" in origin or "127.0.0.1" in origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            
+    return response
 
 @app.on_event("startup")
 async def startup_event():
