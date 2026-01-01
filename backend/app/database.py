@@ -5,15 +5,20 @@ from .config import get_settings
 
 settings = get_settings()
 
+# Corregir URL de base de datos para SQLAlchemy (postgres:// -> postgresql://)
+database_url = settings.DATABASE_URL
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
 # Determinar si es PostgreSQL o SQLite
-is_postgres = settings.DATABASE_URL.startswith("postgresql://")
+is_postgres = database_url.startswith("postgresql://")
 
 # Crear engine con configuración apropiada
 if is_postgres:
-    engine = create_engine(settings.DATABASE_URL)
+    engine = create_engine(database_url)
 else:
     engine = create_engine(
-        settings.DATABASE_URL,
+        database_url,
         connect_args={"check_same_thread": False}
     )
 

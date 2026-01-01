@@ -213,13 +213,11 @@ def seed_database():
 origins = settings.CORS_ORIGINS.split(",")
 print(f"CORS Origins: {origins}")
 
-# Permitir wildcard para desarrollo/problemas de CORS
-allow_all = "*" in origins or not origins or origins[0] == ""
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if allow_all else origins,
-    allow_credentials=not allow_all,  # No credentials con wildcard
+    allow_origins=origins,
+    allow_origin_regex="https://.*\.onrender\.com",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
