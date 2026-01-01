@@ -35,6 +35,15 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Ejecutar seed de datos al inicio"""
+    try:
+        seed_database()
+        print("✓ Base de datos inicializada correctamente")
+    except Exception as e:
+        print(f"Error al inicializar base de datos: {e}")
+
 def seed_database():
     """Crear datos iniciales si no existen"""
     from .models import Proveedor, Producto, Inventario
