@@ -48,3 +48,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
+Base = get_base()
+engine = get_engine()
+SessionLocal = get_session_local()
