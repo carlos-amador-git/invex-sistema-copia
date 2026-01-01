@@ -9,9 +9,9 @@
 // - O usa variable de entorno: REACT_APP_API_URL
 
 const API_CONFIG = {
-  production: 'https://invex-backend-9oa4.onrender.com',  // Backend en Render
-  development: 'http://localhost:8000',
-  tunnel: 'https://tu-url-de-tunel.trycloudflare.com'
+  production: 'https://invex-backend-9oa4.onrender.com/api',  // Backend en Render (con /api)
+  development: 'http://localhost:8000/api',
+  tunnel: 'https://tu-url-de-tunel.trycloudflare.com/api'
 };
 
 // ==========================================
