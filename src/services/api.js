@@ -2,13 +2,19 @@ import axios from 'axios';
 
 // Determinar URL del API basado en el dominio actual
 const getApiBaseUrl = () => {
-  const envUrl = process.env.REACT_APP_API_URL;
-  if (envUrl) return envUrl;
+  let envUrl = process.env.REACT_APP_API_URL;
+  if (envUrl) {
+    // Asegurar que termine en /api si no lo tiene
+    if (!envUrl.endsWith('/api')) {
+      return `${envUrl}/api`;
+    }
+    return envUrl;
+  }
 
   // Fallback: si estamos en prod, usar el backend correspondiente
   const currentUrl = window.location.href;
   if (currentUrl.includes('onrender.com')) {
-    return 'https://invex-backend.onrender.com';
+    return 'https://invex-backend.onrender.com/api';
   }
 
   // Local development
