@@ -200,13 +200,10 @@ def seed_database():
     finally:
         db.close()
 
-@app.on_event("startup")
-async def startup_event():
-    """Ejecutar seed en startup si no hay usuarios"""
-    seed_database()
-
-# Configurar CORS
+# Configurar CORS - debe estar ANTES de los routers
 origins = settings.CORS_ORIGINS.split(",")
+print(f"CORS Origins: {origins}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -214,6 +211,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Ejecutar seed en startup si no hay usuarios"""
+    seed_database()
 
 # Registrar routers
 app.include_router(auth_router, prefix="/api")
