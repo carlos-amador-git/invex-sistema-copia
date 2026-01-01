@@ -248,12 +248,25 @@ print(f"CORS Origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins + ["https://*.vercel.app", "https://*.vercel.dev"],
-    allow_origin_regex=r"https://.*\.(onrender|vercel|vercel-dev)\.com",
+    allow_origins=["*"],  # Permitir todos los orígenes temporalmente
+    allow_origin_regex=None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Middleware manual para CORS
+@app.middleware("http")
+async def cors_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if origin:
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+    return await call_next(request)
 
 # Registrar routers
 app.include_router(auth_router, prefix="/api")
