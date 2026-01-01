@@ -204,10 +204,13 @@ def seed_database():
 origins = settings.CORS_ORIGINS.split(",")
 print(f"CORS Origins: {origins}")
 
+# Permitir wildcard para desarrollo/problemas de CORS
+allow_all = "*" in origins or not origins or origins[0] == ""
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"] if allow_all else origins,
+    allow_credentials=not allow_all,  # No credentials con wildcard
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -256,3 +259,13 @@ async def debug_users():
         return {"count": len(user_list), "users": user_list}
     finally:
         db.close()
+
+@app.get("/debug/cors")
+async def debug_cors():
+    """Endpoint de debug para verificar configuración CORS"""
+    origins = settings.CORS_ORIGINS.split(",")
+    return {
+        "cors_origins_env": settings.CORS_ORIGINS,
+        "cors_origins_parsed": origins,
+        "backend_url": settings.DATABASE_URL
+    }
