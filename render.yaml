@@ -8,13 +8,22 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Descomentar para usar SQLite en disco persistente (requiere plan de pago o disco)
+    # disk:
+    #   name: invex-data
+    #   mountPath: /data
+    #   sizeGB: 1
+
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
+      # Usar SQLite en lugar de Postgres para evitar problemas de conexión en capa gratuita
       - key: DATABASE_URL
-        fromDatabase:
-          name: invex-db
-          property: connectionString
+        value: "sqlite:///./invex.db" 
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: invex-db
+      #     property: connectionString
       - key: CORS_ORIGINS
         value: "http://localhost:3000,http://127.0.0.1:3000,https://invex-sistema.onrender.com"
 
@@ -37,9 +46,9 @@ services:
           name: invex-backend
           property: url
 
-databases:
-  - name: invex-db
-    region: oregon
-    plan: free
-    databaseName: invex
-    user: invex_user
+databases: []
+  # - name: invex-db
+  #   region: oregon
+  #   plan: free
+  #   databaseName: invex
+  #   user: invex_user
