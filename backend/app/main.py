@@ -39,16 +39,32 @@ app = FastAPI(
 # Middleware manual para asegurar CORS incluso en errores
 @app.middleware("http")
 async def add_cors_headers(request: Request, call_next):
+    # Asegurar headers CORS para OPTIONS (Preflight)
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin")
+        if origin and ("onrender.com" in origin or "localhost" in origin or "127.0.0.1" in origin):
+            return Response(
+                status_code=200,
+                headers={
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Credentials": "true",
+                    "Access-Control-Allow-Methods": "*",
+                    "Access-Control-Allow-Headers": "*",
+                }
+            )
+
     try:
         response = await call_next(request)
     except Exception as e:
         print(f"Error no manejado en request: {e}")
+        import traceback
+        traceback.print_exc()
         response = JSONResponse(
             status_code=500,
             content={"detail": "Internal Server Error", "error": str(e)}
         )
     
-    # Asegurar headers CORS
+    # Asegurar headers CORS en respuesta
     origin = request.headers.get("origin")
     if origin:
         # Permitir cualquier subdominio de onrender o localhost
@@ -68,12 +84,10 @@ async def startup_event():
     # Intentar conectar a la BD y crear tablas
     try:
         print("Creando tablas en base de datos...")
-        Base.metadata.create_all(bind=engine)
-        print("✓ Tablas creadas correctamente")
+        # Base.metadata.create_all(bind=engine)
+        print("✓ Tablas creadas correctamente (saltado por ahora)")
     except Exception as e:
         print(f"❌ Error crítico al conectar/crear tablas en BD: {e}")
-        # No re-raise para permitir que la app inicie y muestre logs, 
-        # aunque los endpoints de BD fallarán.
     
     # Ejecutar seed
     try:
@@ -248,7 +262,7 @@ def seed_database():
         db.close()
 
 # Configurar CORS - debe estar ANTES de los routers
-origins = settings.CORS_ORIGINS.split(",")
+origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
 print(f"CORS Origins: {origins}")
 
 app.add_middleware(
