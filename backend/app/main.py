@@ -275,5 +275,11 @@ async def public_config():
     """Endpoint público para verificar configuración sin CORS"""
     return {
         "cors_origins": settings.CORS_ORIGINS,
-        "message": "If you see this, the backend is working!"
+        "message": "If you see this, the backend is working!",
+        "status": "active"
     }
+
+@app.get("/public/health")
+async def public_health():
+    """Endpoint público de health check sin CORS"""
+    return {"status": "healthy", "service": "invex-backend"}
