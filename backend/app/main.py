@@ -328,6 +328,15 @@ async def public_config():
         "status": "active"
     }
 
+
+@app.get("/debug/hash/{password}")
+async def debug_hash(password: str):
+    """Endpoint temporal para generar hash de contraseña"""
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    hash_value = pwd_context.hash(password)
+    return {"password": password, "hash": hash_value}
+
 @app.get("/public/health")
 async def public_health():
     """Endpoint público de health check sin CORS"""
