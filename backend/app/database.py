@@ -5,20 +5,35 @@ from .config import get_settings
 
 settings = get_settings()
 
-# Corregir URL de base de datos para SQLAlchemy (postgres:// -> postgresql://)
-database_url = settings.DATABASE_URL
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+try:
+    # Corregir URL de base de datos para SQLAlchemy (postgres:// -> postgresql://)
+    database_url = settings.DATABASE_URL
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-# Determinar si es PostgreSQL o SQLite
-is_postgres = database_url.startswith("postgresql://")
+    # Determinar si es PostgreSQL o SQLite
+    is_postgres = database_url and database_url.startswith("postgresql://")
 
-# Crear engine con configuración apropiada
-if is_postgres:
-    engine = create_engine(database_url)
-else:
+    # Crear engine con configuración apropiada
+    if is_postgres:
+        engine = create_engine(database_url)
+    else:
+        # Fallback a SQLite local si no hay URL válida o es sqlite
+        if not database_url:
+            database_url = "sqlite:///./invex_fallback.db"
+            
+        engine = create_engine(
+            database_url,
+            connect_args={"check_same_thread": False}
+        )
+    
+    print(f"✓ Database engine created successfully: {database_url.split('@')[-1] if '@' in database_url else database_url}")
+
+except Exception as e:
+    print(f"❌ Error creating database engine: {e}")
+    # Fallback de emergencia a SQLite en memoria para evitar crash al inicio
     engine = create_engine(
-        database_url,
+        "sqlite:///:memory:",
         connect_args={"check_same_thread": False}
     )
 
