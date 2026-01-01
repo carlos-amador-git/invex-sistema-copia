@@ -7,7 +7,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: CORS_ORIGINS
-        value: https://invex-frontend.onrender.com
+        value: https://invex-frontend.onrender.com,https://invex-sistema.onrender.com
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
