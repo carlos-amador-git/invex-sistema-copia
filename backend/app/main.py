@@ -249,7 +249,7 @@ print(f"CORS Origins: {origins}")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins + ["https://*.vercel.app", "https://*.vercel.dev"],
-    allow_origin_regex="https://.*\.(onrender|vercel|vercel-dev)\.com",
+    allow_origin_regex=r"https://.*\.(onrender|vercel|vercel-dev)\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
