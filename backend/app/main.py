@@ -37,12 +37,17 @@ app = FastAPI(
 
 def seed_database():
     """Crear datos iniciales si no existen"""
+    from .models import Proveedor, Producto, Inventario
+    from datetime import date
+
     db = SessionLocal()
     try:
         # Verificar si hay usuarios
         user_count = db.query(Usuario).count()
         if user_count > 0:
             return
+
+        print("Base de datos vacía. Ejecutando seed completo...")
 
         # Crear roles
         roles_data = [
@@ -93,6 +98,7 @@ def seed_database():
             if not existing:
                 db.add(Rol(**rol_data))
         db.commit()
+        print("✓ Roles creados")
 
         # Crear usuarios
         usuarios_data = [
@@ -108,9 +114,88 @@ def seed_database():
             if not existing:
                 db.add(Usuario(**user_data))
         db.commit()
+        print("✓ Usuarios creados")
+
+        # Crear proveedores
+        proveedores_data = [
+            {"nombre": "Thales", "tiempo_entrega": 8, "contacto": "ventas@thales.com"},
+            {"nombre": "MyCard", "tiempo_entrega": 6, "contacto": "ventas@mycard.com"},
+            {"nombre": "TGS", "tiempo_entrega": 10, "contacto": "ventas@tgs.com"}
+        ]
+
+        for prov_data in proveedores_data:
+            existing = db.query(Proveedor).filter(Proveedor.nombre == prov_data["nombre"]).first()
+            if not existing:
+                db.add(Proveedor(**prov_data))
+        db.commit()
+        print("✓ Proveedores creados")
+
+        # Crear productos
+        thales = db.query(Proveedor).filter(Proveedor.nombre == "Thales").first()
+        mycard = db.query(Proveedor).filter(Proveedor.nombre == "MyCard").first()
+        tgs = db.query(Proveedor).filter(Proveedor.nombre == "TGS").first()
+
+        productos_data = [
+            {"id": "J14885C", "nombre": "MCI INMEDIATA VOYAGE PLATINUM DUAL INT", "proveedor_id": thales.id, "costo_unitario": 2.17, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14886C", "nombre": "MCI NORMAL VOYAGE GOLD DUAL INTERFACE", "proveedor_id": thales.id, "costo_unitario": 2.17, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14887C", "nombre": "MCI NORMAL VOYAGE PLATINUM DUAL INTERF", "proveedor_id": thales.id, "costo_unitario": 2.17, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14901I", "nombre": "MCI INMEDIATO HEJCARD (IKEA) DUAL INTE", "proveedor_id": mycard.id, "costo_unitario": 1.43, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14902I", "nombre": "MCI SINGLE PANEL HEJCARD (IKEA) DUAL I", "proveedor_id": mycard.id, "costo_unitario": 1.43, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14910C", "nombre": "MCI AMAZON TDD DUAL INTERFACE", "proveedor_id": mycard.id, "costo_unitario": 1.50, "marca": "Mastercard", "tipo": "Débito"},
+            {"id": "J14941C", "nombre": "MCI NORMAL VOLARIS 1 DUAL INTERFACE", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14942C", "nombre": "MCI NML VOL 2 DUAL INTERFACE", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14943C", "nombre": "MCI NORMAL VOL 0 DUAL INTERFACE", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14967C", "nombre": "Volaris 1", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14968C", "nombre": "Volaris 0", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14969C", "nombre": "Volaris 2", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J14984H", "nombre": "VSI NML CIBANCO DUAL INTERFACE", "proveedor_id": tgs.id, "costo_unitario": 1.80, "marca": "Visa", "tipo": "Crédito"},
+            {"id": "J14986", "nombre": "MCI BC SERIGRAFÍA EN MB PRODUC DUAL IN", "proveedor_id": mycard.id, "costo_unitario": 1.20, "marca": "Mastercard", "tipo": "Débito"},
+            {"id": "J14987", "nombre": "MCI BC SERIGRAFÍA EN MB DESARROLLO DUA", "proveedor_id": mycard.id, "costo_unitario": 1.20, "marca": "Mastercard", "tipo": "Débito"},
+            {"id": "J15033I", "nombre": "MCI NORMAL WALMART DUAL INTERFACE", "proveedor_id": mycard.id, "costo_unitario": 1.35, "marca": "Mastercard", "tipo": "Crédito"},
+            {"id": "J15034I", "nombre": "MCI NORMAL SAMS CLUB DUAL INTERFACE", "proveedor_id": mycard.id, "costo_unitario": 1.35, "marca": "Mastercard", "tipo": "Crédito"},
+        ]
+
+        for prod_data in productos_data:
+            existing = db.query(Producto).filter(Producto.id == prod_data["id"]).first()
+            if not existing:
+                db.add(Producto(**prod_data))
+        db.commit()
+        print("✓ Productos creados")
+
+        # Crear inventario
+        inventarios_data = [
+            {"producto_id": "J14885C", "boveda_trabajo": 98, "boveda_principal": 0},
+            {"producto_id": "J14886C", "boveda_trabajo": 416, "boveda_principal": 2500},
+            {"producto_id": "J14887C", "boveda_trabajo": 109, "boveda_principal": 3500},
+            {"producto_id": "J14901I", "boveda_trabajo": 118, "boveda_principal": 1500},
+            {"producto_id": "J14902I", "boveda_trabajo": 0, "boveda_principal": 0},
+            {"producto_id": "J14910C", "boveda_trabajo": 462, "boveda_principal": 3500},
+            {"producto_id": "J14941C", "boveda_trabajo": 272, "boveda_principal": 0},
+            {"producto_id": "J14942C", "boveda_trabajo": 280, "boveda_principal": 0},
+            {"producto_id": "J14943C", "boveda_trabajo": 268, "boveda_principal": 0},
+            {"producto_id": "J14967C", "boveda_trabajo": 2862, "boveda_principal": 18000, "dist_colocacion": 2800, "dist_normal": 900, "mod_colocacion": 2200},
+            {"producto_id": "J14968C", "boveda_trabajo": 607, "boveda_principal": 41000, "dist_colocacion": 3500, "dist_normal": 1200, "mod_colocacion": 2800},
+            {"producto_id": "J14969C", "boveda_trabajo": 850, "boveda_principal": 21500, "dist_colocacion": 4000, "dist_normal": 1500, "mod_colocacion": 3200},
+            {"producto_id": "J14984H", "boveda_trabajo": 424, "boveda_principal": 500},
+            {"producto_id": "J14986", "boveda_trabajo": 9, "boveda_principal": 0},
+            {"producto_id": "J14987", "boveda_trabajo": 10, "boveda_principal": 0},
+            {"producto_id": "J15033I", "boveda_trabajo": 36, "boveda_principal": 1500},
+            {"producto_id": "J15034I", "boveda_trabajo": 492, "boveda_principal": 28500},
+        ]
+
+        for inv_data in inventarios_data:
+            existing = db.query(Inventario).filter(Inventario.producto_id == inv_data["producto_id"]).first()
+            if not existing:
+                db.add(Inventario(**inv_data))
+        db.commit()
+        print("✓ Inventario creado")
+
+        print("✅ Seed completado exitosamente!")
 
     except Exception as e:
         print(f"Error seeding database: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
     finally:
         db.close()
