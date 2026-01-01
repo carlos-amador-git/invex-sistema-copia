@@ -23,8 +23,8 @@ from datetime import datetime
 
 settings = get_settings()
 
-# Crear tablas
-Base.metadata.create_all(bind=engine)
+# Mover creación de tablas al startup event para manejar errores de conexión
+# Base.metadata.create_all(bind=engine) 
 
 # Crear aplicación FastAPI
 app = FastAPI(
@@ -37,12 +37,25 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_event():
-    """Ejecutar seed de datos al inicio"""
+    """Inicializar base de datos y ejecutar seed"""
+    print(f"Iniciando aplicación. Environment: {settings.VERCEL_ENV or 'Local/Render'}")
+    
+    # Intentar conectar a la BD y crear tablas
+    try:
+        print("Creando tablas en base de datos...")
+        Base.metadata.create_all(bind=engine)
+        print("✓ Tablas creadas correctamente")
+    except Exception as e:
+        print(f"❌ Error crítico al conectar/crear tablas en BD: {e}")
+        # No re-raise para permitir que la app inicie y muestre logs, 
+        # aunque los endpoints de BD fallarán.
+    
+    # Ejecutar seed
     try:
         seed_database()
-        print("✓ Base de datos inicializada correctamente")
+        print("✓ Seed de datos completado")
     except Exception as e:
-        print(f"Error al inicializar base de datos: {e}")
+        print(f"Error al ejecutar seed de datos: {e}")
 
 def seed_database():
     """Crear datos iniciales si no existen"""
