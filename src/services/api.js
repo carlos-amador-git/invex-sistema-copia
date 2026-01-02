@@ -19,23 +19,14 @@ const API_CONFIG = {
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  // 1. Usar variable de entorno si existe
-  const envUrl = process.env.REACT_APP_API_URL;
-  if (envUrl) {
-    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
-  }
-
-  // 2. Detectar si estamos en desarrollo local (localhost)
+  // 1. Detectar si estamos en desarrollo local (localhost)
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return API_CONFIG.development.endsWith('/api') 
-      ? API_CONFIG.development 
-      : `${API_CONFIG.development}/api`;
+    return API_CONFIG.development;
   }
 
-  // 3. Producción: Usar URL directa de Render (evitar proxy de Vercel)
-  return API_CONFIG.production.endsWith('/api')
-    ? API_CONFIG.production
-    : `${API_CONFIG.production}/api`;
+  // 2. Producción: Usar URL directa de Render (evitar proxy de Vercel)
+  // IMPORTANTE: Siempre usar URL absoluta para evitar problemas de CORS/proxy
+  return API_CONFIG.production;
 };
 
 const API_BASE_URL = getApiBaseUrl();
