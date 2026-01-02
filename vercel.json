@@ -1,19 +1,12 @@
 {
-  "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    }
-  ],
-  "routes": [
+      "source": "/api/(.*)",
+      "destination": "https://invex-backend-9oa4.onrender.com/api/$1"
+    },
     {
-      "src": "/(.*)",
-      "dest": "/build/$1"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "framework": null
+  ]
 }
