@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://invex-backend-9oa4.onrender.com/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://invex-backend-9oa4.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
