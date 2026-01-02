@@ -251,19 +251,52 @@ def seed_database():
         # Crear Procesos BAU
         pym01 = db.query(Presupuesto).filter(Presupuesto.codigo == "PYM01").first()
         
-        # Datos extraídos de src/data/inventario.js
+        # Datos extraídos de backend/invex.db
         bau_seed_data = [
-            # J14968C (Volaris 0)
-            {"producto_id": "J14968C", "mes": 10, "anio": 2025, "trasco": 2750, "btb": 1029, "renov": 0},
-            {"producto_id": "J14968C", "mes": 11, "anio": 2025, "trasco": 5500, "btb": 2057, "renov": 5158},
-            {"producto_id": "J14968C", "mes": 12, "anio": 2025, "trasco": 5500, "btb": 2057, "renov": 2935},
-            {"producto_id": "J14968C", "mes": 1, "anio": 2026, "trasco": 5500, "btb": 2057, "renov": 7871},
-            {"producto_id": "J14968C", "mes": 2, "anio": 2026, "trasco": 5500, "btb": 2057, "renov": 9804},
-            {"producto_id": "J14968C", "mes": 3, "anio": 2026, "trasco": 5500, "btb": 2057, "renov": 9127},
-            # J14969C (Volaris 2)
-            {"producto_id": "J14969C", "mes": 10, "anio": 2025, "trasco": 1000, "btb": 61, "renov": 0},
-            {"producto_id": "J14969C", "mes": 11, "anio": 2025, "trasco": 2000, "btb": 61, "renov": 11077},
-            {"producto_id": "J14969C", "mes": 12, "anio": 2025, "trasco": 2000, "btb": 61, "renov": 4903},
+            # 2025 Data (J14968C)
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 6, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 6, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 7, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 7, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 8, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 8, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 9, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 9, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 10, "anio": 2025, "cantidad": 2750, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 10, "anio": 2025, "cantidad": 1029, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 10, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 11, "anio": 2025, "cantidad": 5500, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 11, "anio": 2025, "cantidad": 2057, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 11, "anio": 2025, "cantidad": 5158, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 12, "anio": 2025, "cantidad": 5500, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 12, "anio": 2025, "cantidad": 2057, "presupuesto_id": None},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 12, "anio": 2025, "cantidad": 2935, "presupuesto_id": None},
+            
+            # 2026 Data (J14968C) - Presupuesto PYM01 (ID 1)
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 1, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 1, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 1, "anio": 2026, "cantidad": 7871, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 2, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 2, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 2, "anio": 2026, "cantidad": 9804, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 3, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 3, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 3, "anio": 2026, "cantidad": 9127, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 4, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 4, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 4, "anio": 2026, "cantidad": 8938, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 5, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 5, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 5, "anio": 2026, "cantidad": 9811, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 6, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 6, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 6, "anio": 2026, "cantidad": 11510, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 7, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 7, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 7, "anio": 2026, "cantidad": 11342, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 8, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 8, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
+            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 8, "anio": 2026, "cantidad": 3000, "presupuesto_id": 1},
         ]
 
         for item in bau_seed_data:
@@ -272,38 +305,25 @@ def seed_database():
             if not prod:
                 continue
 
-            # Trascodificación
-            if item["trasco"] > 0:
-                exists = db.query(ProcesoBAU).filter_by(
-                    producto_id=item["producto_id"], tipo_proceso="trascodificacion", mes=item["mes"], anio=item["anio"]
-                ).first()
-                if not exists:
-                    db.add(ProcesoBAU(
-                        producto_id=item["producto_id"], tipo_proceso="trascodificacion", mes=item["mes"], anio=item["anio"],
-                        cantidad=item["trasco"], presupuesto_id=pym01.id if pym01 else None
-                    ))
-            
-            # Bank to Bank
-            if item["btb"] > 0:
-                exists = db.query(ProcesoBAU).filter_by(
-                    producto_id=item["producto_id"], tipo_proceso="btb", mes=item["mes"], anio=item["anio"]
-                ).first()
-                if not exists:
-                    db.add(ProcesoBAU(
-                        producto_id=item["producto_id"], tipo_proceso="btb", mes=item["mes"], anio=item["anio"],
-                        cantidad=item["btb"], presupuesto_id=pym01.id if pym01 else None
-                    ))
+            # Determinar presupuesto
+            pres_id = None
+            if item["presupuesto_id"] == 1 and pym01:
+                pres_id = pym01.id
 
-            # Renovación Anticipada
-            if item["renov"] > 0:
-                exists = db.query(ProcesoBAU).filter_by(
-                    producto_id=item["producto_id"], tipo_proceso="renovacion_anticipada", mes=item["mes"], anio=item["anio"]
-                ).first()
-                if not exists:
-                    db.add(ProcesoBAU(
-                        producto_id=item["producto_id"], tipo_proceso="renovacion_anticipada", mes=item["mes"], anio=item["anio"],
-                        cantidad=item["renov"], presupuesto_id=pym01.id if pym01 else None
-                    ))
+            # Insertar o actualizar
+            exists = db.query(ProcesoBAU).filter_by(
+                producto_id=item["producto_id"], tipo_proceso=item["tipo_proceso"], mes=item["mes"], anio=item["anio"]
+            ).first()
+            
+            if not exists:
+                db.add(ProcesoBAU(
+                    producto_id=item["producto_id"], 
+                    tipo_proceso=item["tipo_proceso"], 
+                    mes=item["mes"], 
+                    anio=item["anio"],
+                    cantidad=item["cantidad"], 
+                    presupuesto_id=pres_id
+                ))
         
         db.commit()
         print("✓ Procesos BAU creados")
