@@ -19,7 +19,7 @@ const API_CONFIG = {
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  // 1. Usar variable de entorno si existe (útil para túneles)
+  // 1. Usar variable de entorno si existe
   const envUrl = process.env.REACT_APP_API_URL;
   if (envUrl) {
     return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
@@ -32,14 +32,13 @@ const getApiBaseUrl = () => {
       : `${API_CONFIG.development}/api`;
   }
 
-  // 3. Usar URL de túnel configurada si existe
-  if (API_CONFIG.tunnel && API_CONFIG.tunnel !== 'https://tu-url-de-tunel.trycloudflare.com') {
-    return API_CONFIG.tunnel.endsWith('/api')
-      ? API_CONFIG.tunnel
-      : `${API_CONFIG.tunnel}/api`;
+  // 3. En producción (Vercel), usar la URL relativa para que el rewrite de vercel.json funcione
+  // Esto hará que las peticiones vayan a /api/..., y vercel.json las redirigirá a Render
+  if (window.location.hostname.includes('vercel.app')) {
+    return '/api';
   }
 
-  // 4. Usar URL de producción por defecto
+  // 4. Fallback a URL directa de Render si no estamos en Vercel
   return API_CONFIG.production.endsWith('/api')
     ? API_CONFIG.production
     : `${API_CONFIG.production}/api`;
