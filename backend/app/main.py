@@ -75,7 +75,11 @@ async def add_cors_headers(request: Request, call_next):
 @app.on_event("startup")
 async def startup_event():
     print(f"Iniciando aplicación en {settings.VERCEL_ENV or 'local'} mode")
-    # No ejecutar seed en producción - los datos ya están en Neon
+    # Ejecutar seed siempre (verifica si ya existen datos internamente)
+    try:
+        seed_database()
+    except Exception as e:
+        print(f"Error seeding database: {e}")
 
 def seed_database():
     """Crear datos iniciales si no existen"""
