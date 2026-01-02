@@ -236,6 +236,78 @@ def seed_database():
         db.commit()
         print("✓ Inventario creado")
 
+        # Crear Presupuestos
+        presupuestos_data = [
+            {"codigo": "PYM01", "descripcion": "Presupuesto 2026", "activo": True},
+            {"codigo": "ADQ7", "descripcion": "Adquisición 7", "activo": True}
+        ]
+        for pres_data in presupuestos_data:
+            existing = db.query(Presupuesto).filter(Presupuesto.codigo == pres_data["codigo"]).first()
+            if not existing:
+                db.add(Presupuesto(**pres_data))
+        db.commit()
+        print("✓ Presupuestos creados")
+
+        # Crear Procesos BAU
+        pym01 = db.query(Presupuesto).filter(Presupuesto.codigo == "PYM01").first()
+        
+        # Datos extraídos de src/data/inventario.js
+        bau_seed_data = [
+            # J14968C (Volaris 0)
+            {"producto_id": "J14968C", "mes": 10, "anio": 2025, "trasco": 2750, "btb": 1029, "renov": 0},
+            {"producto_id": "J14968C", "mes": 11, "anio": 2025, "trasco": 5500, "btb": 2057, "renov": 5158},
+            {"producto_id": "J14968C", "mes": 12, "anio": 2025, "trasco": 5500, "btb": 2057, "renov": 2935},
+            {"producto_id": "J14968C", "mes": 1, "anio": 2026, "trasco": 5500, "btb": 2057, "renov": 7871},
+            {"producto_id": "J14968C", "mes": 2, "anio": 2026, "trasco": 5500, "btb": 2057, "renov": 9804},
+            {"producto_id": "J14968C", "mes": 3, "anio": 2026, "trasco": 5500, "btb": 2057, "renov": 9127},
+            # J14969C (Volaris 2)
+            {"producto_id": "J14969C", "mes": 10, "anio": 2025, "trasco": 1000, "btb": 61, "renov": 0},
+            {"producto_id": "J14969C", "mes": 11, "anio": 2025, "trasco": 2000, "btb": 61, "renov": 11077},
+            {"producto_id": "J14969C", "mes": 12, "anio": 2025, "trasco": 2000, "btb": 61, "renov": 4903},
+        ]
+
+        for item in bau_seed_data:
+            # Verificar si el producto existe
+            prod = db.query(Producto).filter(Producto.id == item["producto_id"]).first()
+            if not prod:
+                continue
+
+            # Trascodificación
+            if item["trasco"] > 0:
+                exists = db.query(ProcesoBAU).filter_by(
+                    producto_id=item["producto_id"], tipo_proceso="trascodificacion", mes=item["mes"], anio=item["anio"]
+                ).first()
+                if not exists:
+                    db.add(ProcesoBAU(
+                        producto_id=item["producto_id"], tipo_proceso="trascodificacion", mes=item["mes"], anio=item["anio"],
+                        cantidad=item["trasco"], presupuesto_id=pym01.id if pym01 else None
+                    ))
+            
+            # Bank to Bank
+            if item["btb"] > 0:
+                exists = db.query(ProcesoBAU).filter_by(
+                    producto_id=item["producto_id"], tipo_proceso="btb", mes=item["mes"], anio=item["anio"]
+                ).first()
+                if not exists:
+                    db.add(ProcesoBAU(
+                        producto_id=item["producto_id"], tipo_proceso="btb", mes=item["mes"], anio=item["anio"],
+                        cantidad=item["btb"], presupuesto_id=pym01.id if pym01 else None
+                    ))
+
+            # Renovación Anticipada
+            if item["renov"] > 0:
+                exists = db.query(ProcesoBAU).filter_by(
+                    producto_id=item["producto_id"], tipo_proceso="renovacion_anticipada", mes=item["mes"], anio=item["anio"]
+                ).first()
+                if not exists:
+                    db.add(ProcesoBAU(
+                        producto_id=item["producto_id"], tipo_proceso="renovacion_anticipada", mes=item["mes"], anio=item["anio"],
+                        cantidad=item["renov"], presupuesto_id=pym01.id if pym01 else None
+                    ))
+        
+        db.commit()
+        print("✓ Procesos BAU creados")
+
         print("✅ Seed completado exitosamente!")
 
     except Exception as e:
