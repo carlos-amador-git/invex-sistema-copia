@@ -17,7 +17,7 @@ from .routers import (
     procesos_bau_router,
     inventario_historial_router
 )
-from .models import Usuario, Rol
+from .models import Usuario, Rol, Proveedor, Producto, Inventario, Forecast, HistorialCaptura, OrdenCompra, InventarioMaterial, RelacionProductoMaterial, ProcesoBAU, Presupuesto
 from .utils.security import get_password_hash
 import json
 from datetime import datetime
