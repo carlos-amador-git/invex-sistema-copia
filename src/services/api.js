@@ -32,13 +32,7 @@ const getApiBaseUrl = () => {
       : `${API_CONFIG.development}/api`;
   }
 
-  // 3. En producción (Vercel), usar la URL relativa para que el rewrite de vercel.json funcione
-  // Esto hará que las peticiones vayan a /api/..., y vercel.json las redirigirá a Render
-  if (window.location.hostname.includes('vercel.app')) {
-    return '/api';
-  }
-
-  // 4. Fallback a URL directa de Render si no estamos en Vercel
+  // 3. Producción: Usar URL directa de Render (evitar proxy de Vercel)
   return API_CONFIG.production.endsWith('/api')
     ? API_CONFIG.production
     : `${API_CONFIG.production}/api`;
