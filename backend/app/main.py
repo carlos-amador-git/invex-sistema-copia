@@ -83,252 +83,170 @@ async def startup_event():
 
 def seed_database():
     """Crear datos iniciales si no existen"""
-    from .models import Proveedor, Producto, Inventario
-    from datetime import date
+    from .models import Proveedor, Producto, Inventario, Usuario, Rol, OrdenCompra, ProcesoBAU, Presupuesto
+    import os
+    import json
+    from datetime import datetime, date
 
     db = SessionLocal()
     try:
-        # Verificar si hay usuarios
-        user_count = db.query(Usuario).count()
-        if user_count > 0:
+        print("Iniciando seed de base de datos...")
+        
+        # Cargar datos del archivo JSON
+        seed_file_path = os.path.join(os.path.dirname(__file__), "seed_data.json")
+        if not os.path.exists(seed_file_path):
+            print(f"Advertencia: No se encontró {seed_file_path}. Se omitirá el seed masivo.")
             return
 
-        print("Base de datos vacía. Ejecutando seed completo...")
+        with open(seed_file_path, "r") as f:
+            seed_data = json.load(f)
 
-        # Crear roles
-        roles_data = [
-            {
-                "nombre": "admin",
-                "descripcion": "Admin Inventario",
-                "area": "Inventario",
-                "color": "#8b5cf6",
-                "modulos": json.dumps(["dashboard", "balance", "forecast", "productos", "ordenes", "usuarios", "configuracion"]),
-                "permisos": json.dumps({"verTodo": True, "editarTodo": True, "crearOrdenes": True, "gestionarUsuarios": True, "verDashboard": True})
-            },
-            {
-                "nombre": "tsys",
-                "descripcion": "Usuario TSYS",
-                "area": "Almacén (TSYS)",
-                "color": "#3b82f6",
-                "modulos": json.dumps(["captura-tsys", "mi-historial", "dashboard-lectura"]),
-                "permisos": json.dumps({"editarInventarioTSYS": True, "verDashboard": True})
-            },
-            {
-                "nombre": "distribucion",
-                "descripcion": "Distribución",
-                "area": "Distribución",
-                "color": "#f59e0b",
-                "modulos": json.dumps(["captura-distribucion", "mi-historial", "dashboard-lectura"]),
-                "permisos": json.dumps({"editarDemandaDistribucion": True, "verDashboard": True})
-            },
-            {
-                "nombre": "modulos",
-                "descripcion": "Módulos",
-                "area": "Módulos",
-                "color": "#10b981",
-                "modulos": json.dumps(["captura-modulos", "mi-historial", "dashboard-lectura"]),
-                "permisos": json.dumps({"editarDemandaModulos": True, "verDashboard": True})
-            },
-            {
-                "nombre": "consulta",
-                "descripcion": "Directivo",
-                "area": "Dirección",
-                "color": "#64748b",
-                "modulos": json.dumps(["dashboard-lectura"]),
-                "permisos": json.dumps({"verDashboard": True, "soloLectura": True})
-            }
-        ]
+        print(f"Cargando datos desde {seed_file_path}...")
 
-        for rol_data in roles_data:
-            existing = db.query(Rol).filter(Rol.nombre == rol_data["nombre"]).first()
-            if not existing:
-                db.add(Rol(**rol_data))
-        db.commit()
-        print("✓ Roles creados")
+        # Helper para convertir fechas
+        def parse_date(date_str):
+            if not date_str: return None
+            try:
+                if "T" in date_str:
+                    return datetime.fromisoformat(date_str).date()
+                return datetime.strptime(date_str, "%Y-%m-%d").date()
+            except:
+                return None
 
-        # Crear usuarios
-        usuarios_data = [
-            {"username": "admin", "password_hash": get_password_hash("admin123"), "nombre": "Carlos Mendoza", "email": "carlos.mendoza@banco.com", "rol": "admin", "face_registered": False, "activo": True},
-            {"username": "tsys_user", "password_hash": get_password_hash("tsys123"), "nombre": "María García", "email": "maria.garcia@banco.com", "rol": "tsys", "face_registered": False, "activo": True},
-            {"username": "dist_user", "password_hash": get_password_hash("dist123"), "nombre": "Roberto Sánchez", "email": "roberto.sanchez@banco.com", "rol": "distribucion", "face_registered": False, "activo": True},
-            {"username": "mod_user", "password_hash": get_password_hash("mod123"), "nombre": "Ana López", "email": "ana.lopez@banco.com", "rol": "modulos", "face_registered": False, "activo": True},
-            {"username": "director", "password_hash": get_password_hash("dir123"), "nombre": "Fernando Ruiz", "email": "fernando.ruiz@banco.com", "rol": "consulta", "face_registered": False, "activo": True}
-        ]
+        def parse_datetime(dt_str):
+            if not dt_str: return None
+            try:
+                return datetime.fromisoformat(dt_str)
+            except:
+                try:
+                    return datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+                except:
+                    return None
 
-        for user_data in usuarios_data:
-            existing = db.query(Usuario).filter(Usuario.username == user_data["username"]).first()
-            if not existing:
-                db.add(Usuario(**user_data))
-        db.commit()
-        print("✓ Usuarios creados")
+        # 1. Roles
+        if "roles" in seed_data:
+            for item in seed_data["roles"]:
+                existing = db.query(Rol).filter(Rol.nombre == item["nombre"]).first()
+                if not existing:
+                    # Limpiar campos extra si es necesario
+                    data = item.copy()
+                    if "id" in data: del data["id"] # Dejar que la BD asigne ID para evitar conflictos de secuencia, o buscar por nombre
+                    if "created_at" in data: del data["created_at"]
+                    db.add(Rol(**data))
+            db.commit()
+            print("✓ Roles verificados/creados")
 
-        # Crear proveedores
-        proveedores_data = [
-            {"nombre": "Thales", "tiempo_entrega": 8, "contacto": "ventas@thales.com"},
-            {"nombre": "MyCard", "tiempo_entrega": 6, "contacto": "ventas@mycard.com"},
-            {"nombre": "TGS", "tiempo_entrega": 10, "contacto": "ventas@tgs.com"}
-        ]
+        # 2. Usuarios
+        if "usuarios" in seed_data:
+            for item in seed_data["usuarios"]:
+                existing = db.query(Usuario).filter(Usuario.username == item["username"]).first()
+                if not existing:
+                    data = item.copy()
+                    if "id" in data: del data["id"]
+                    if "created_at" in data: del data["created_at"]
+                    if "updated_at" in data: del data["updated_at"]
+                    if "ultimo_acceso" in data: del data["ultimo_acceso"]
+                    db.add(Usuario(**data))
+            db.commit()
+            print("✓ Usuarios verificados/creados")
 
-        for prov_data in proveedores_data:
-            existing = db.query(Proveedor).filter(Proveedor.nombre == prov_data["nombre"]).first()
-            if not existing:
-                db.add(Proveedor(**prov_data))
-        db.commit()
-        print("✓ Proveedores creados")
+        # 3. Proveedores
+        if "proveedores" in seed_data:
+            for item in seed_data["proveedores"]:
+                existing = db.query(Proveedor).filter(Proveedor.nombre == item["nombre"]).first()
+                if not existing:
+                    data = item.copy()
+                    # Mantener ID si es posible para mantener relaciones, pero si ya existen otros con esos IDs...
+                    # Mejor buscar por nombre y actualizar mapeo si fuera necesario, pero asumimos DB limpia o consistente.
+                    # Si usamos IDs explícitos en SQLite/Postgres puede haber problemas con secuencias.
+                    # Dado que OrdenCompra usa proveedor_id (Integer), necesitamos que coincidan.
+                    # Intentaremos insertar con ID si no existe conflicto.
+                    if "created_at" in data: del data["created_at"]
+                    
+                    # Verificar si existe ID
+                    existing_id = db.query(Proveedor).filter(Proveedor.id == item["id"]).first()
+                    if not existing_id:
+                        db.add(Proveedor(**data))
+                    else:
+                        # Si existe el ID pero con otro nombre? Raro.
+                        pass
+            db.commit()
+            print("✓ Proveedores verificados/creados")
 
-        # Crear productos
-        thales = db.query(Proveedor).filter(Proveedor.nombre == "Thales").first()
-        mycard = db.query(Proveedor).filter(Proveedor.nombre == "MyCard").first()
-        tgs = db.query(Proveedor).filter(Proveedor.nombre == "TGS").first()
+        # 4. Productos
+        if "productos" in seed_data:
+            for item in seed_data["productos"]:
+                existing = db.query(Producto).filter(Producto.id == item["id"]).first()
+                if not existing:
+                    data = item.copy()
+                    if "created_at" in data: del data["created_at"]
+                    if "updated_at" in data: del data["updated_at"]
+                    db.add(Producto(**data))
+            db.commit()
+            print("✓ Productos verificados/creados")
 
-        productos_data = [
-            {"id": "J14885C", "nombre": "MCI INMEDIATA VOYAGE PLATINUM DUAL INT", "proveedor_id": thales.id, "costo_unitario": 2.17, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14886C", "nombre": "MCI NORMAL VOYAGE GOLD DUAL INTERFACE", "proveedor_id": thales.id, "costo_unitario": 2.17, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14887C", "nombre": "MCI NORMAL VOYAGE PLATINUM DUAL INTERF", "proveedor_id": thales.id, "costo_unitario": 2.17, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14901I", "nombre": "MCI INMEDIATO HEJCARD (IKEA) DUAL INTE", "proveedor_id": mycard.id, "costo_unitario": 1.43, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14902I", "nombre": "MCI SINGLE PANEL HEJCARD (IKEA) DUAL I", "proveedor_id": mycard.id, "costo_unitario": 1.43, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14910C", "nombre": "MCI AMAZON TDD DUAL INTERFACE", "proveedor_id": mycard.id, "costo_unitario": 1.50, "marca": "Mastercard", "tipo": "Débito"},
-            {"id": "J14941C", "nombre": "MCI NORMAL VOLARIS 1 DUAL INTERFACE", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14942C", "nombre": "MCI NML VOL 2 DUAL INTERFACE", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14943C", "nombre": "MCI NORMAL VOL 0 DUAL INTERFACE", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14967C", "nombre": "Volaris 1", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14968C", "nombre": "Volaris 0", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14969C", "nombre": "Volaris 2", "proveedor_id": thales.id, "costo_unitario": 10.50, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J14984H", "nombre": "VSI NML CIBANCO DUAL INTERFACE", "proveedor_id": tgs.id, "costo_unitario": 1.80, "marca": "Visa", "tipo": "Crédito"},
-            {"id": "J14986", "nombre": "MCI BC SERIGRAFÍA EN MB PRODUC DUAL IN", "proveedor_id": mycard.id, "costo_unitario": 1.20, "marca": "Mastercard", "tipo": "Débito"},
-            {"id": "J14987", "nombre": "MCI BC SERIGRAFÍA EN MB DESARROLLO DUA", "proveedor_id": mycard.id, "costo_unitario": 1.20, "marca": "Mastercard", "tipo": "Débito"},
-            {"id": "J15033I", "nombre": "MCI NORMAL WALMART DUAL INTERFACE", "proveedor_id": mycard.id, "costo_unitario": 1.35, "marca": "Mastercard", "tipo": "Crédito"},
-            {"id": "J15034I", "nombre": "MCI NORMAL SAMS CLUB DUAL INTERFACE", "proveedor_id": mycard.id, "costo_unitario": 1.35, "marca": "Mastercard", "tipo": "Crédito"},
-        ]
+        # 5. Presupuestos
+        if "presupuestos" in seed_data:
+            for item in seed_data["presupuestos"]:
+                existing = db.query(Presupuesto).filter(Presupuesto.codigo == item["codigo"]).first()
+                if not existing:
+                    data = item.copy()
+                    if "id" in data: del data["id"]
+                    if "created_at" in data: del data["created_at"]
+                    db.add(Presupuesto(**data))
+            db.commit()
+            print("✓ Presupuestos verificados/creados")
 
-        for prod_data in productos_data:
-            existing = db.query(Producto).filter(Producto.id == prod_data["id"]).first()
-            if not existing:
-                db.add(Producto(**prod_data))
-        db.commit()
-        print("✓ Productos creados")
+        # 6. Inventario
+        if "inventario" in seed_data:
+            for item in seed_data["inventario"]:
+                existing = db.query(Inventario).filter(Inventario.producto_id == item["producto_id"]).first()
+                if not existing:
+                    data = item.copy()
+                    if "id" in data: del data["id"]
+                    if "created_at" in data: del data["created_at"]
+                    if "updated_at" in data: del data["updated_at"]
+                    # Fechas
+                    if "fecha_ultimo_movimiento" in data: 
+                        data["fecha_ultimo_movimiento"] = parse_datetime(data["fecha_ultimo_movimiento"])
+                    db.add(Inventario(**data))
+            db.commit()
+            print("✓ Inventario verificado/creado")
 
-        # Crear inventario
-        inventarios_data = [
-            {"producto_id": "J14885C", "boveda_trabajo": 98, "boveda_principal": 0},
-            {"producto_id": "J14886C", "boveda_trabajo": 416, "boveda_principal": 2500},
-            {"producto_id": "J14887C", "boveda_trabajo": 109, "boveda_principal": 3500},
-            {"producto_id": "J14901I", "boveda_trabajo": 118, "boveda_principal": 1500},
-            {"producto_id": "J14902I", "boveda_trabajo": 0, "boveda_principal": 0},
-            {"producto_id": "J14910C", "boveda_trabajo": 462, "boveda_principal": 3500},
-            {"producto_id": "J14941C", "boveda_trabajo": 272, "boveda_principal": 0},
-            {"producto_id": "J14942C", "boveda_trabajo": 280, "boveda_principal": 0},
-            {"producto_id": "J14943C", "boveda_trabajo": 268, "boveda_principal": 0},
-            {"producto_id": "J14967C", "boveda_trabajo": 2862, "boveda_principal": 18000, "dist_colocacion": 2800, "dist_normal": 900, "mod_colocacion": 2200},
-            {"producto_id": "J14968C", "boveda_trabajo": 607, "boveda_principal": 41000, "dist_colocacion": 3500, "dist_normal": 1200, "mod_colocacion": 2800},
-            {"producto_id": "J14969C", "boveda_trabajo": 850, "boveda_principal": 21500, "dist_colocacion": 4000, "dist_normal": 1500, "mod_colocacion": 3200},
-            {"producto_id": "J14984H", "boveda_trabajo": 424, "boveda_principal": 500},
-            {"producto_id": "J14986", "boveda_trabajo": 9, "boveda_principal": 0},
-            {"producto_id": "J14987", "boveda_trabajo": 10, "boveda_principal": 0},
-            {"producto_id": "J15033I", "boveda_trabajo": 36, "boveda_principal": 1500},
-            {"producto_id": "J15034I", "boveda_trabajo": 492, "boveda_principal": 28500},
-        ]
-
-        for inv_data in inventarios_data:
-            existing = db.query(Inventario).filter(Inventario.producto_id == inv_data["producto_id"]).first()
-            if not existing:
-                db.add(Inventario(**inv_data))
-        db.commit()
-        print("✓ Inventario creado")
-
-        # Crear Presupuestos
-        presupuestos_data = [
-            {"codigo": "PYM01", "descripcion": "Presupuesto 2026", "activo": True},
-            {"codigo": "ADQ7", "descripcion": "Adquisición 7", "activo": True}
-        ]
-        for pres_data in presupuestos_data:
-            existing = db.query(Presupuesto).filter(Presupuesto.codigo == pres_data["codigo"]).first()
-            if not existing:
-                db.add(Presupuesto(**pres_data))
-        db.commit()
-        print("✓ Presupuestos creados")
-
-        # Crear Procesos BAU
-        pym01 = db.query(Presupuesto).filter(Presupuesto.codigo == "PYM01").first()
-        
-        # Datos extraídos de backend/invex.db
-        bau_seed_data = [
-            # 2025 Data (J14968C)
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 6, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 6, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 7, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 7, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 8, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 8, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 9, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 9, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 10, "anio": 2025, "cantidad": 2750, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 10, "anio": 2025, "cantidad": 1029, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 10, "anio": 2025, "cantidad": 0, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 11, "anio": 2025, "cantidad": 5500, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 11, "anio": 2025, "cantidad": 2057, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 11, "anio": 2025, "cantidad": 5158, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 12, "anio": 2025, "cantidad": 5500, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 12, "anio": 2025, "cantidad": 2057, "presupuesto_id": None},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 12, "anio": 2025, "cantidad": 2935, "presupuesto_id": None},
-            
-            # 2026 Data (J14968C) - Presupuesto PYM01 (ID 1)
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 1, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 1, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 1, "anio": 2026, "cantidad": 7871, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 2, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 2, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 2, "anio": 2026, "cantidad": 9804, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 3, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 3, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 3, "anio": 2026, "cantidad": 9127, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 4, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 4, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 4, "anio": 2026, "cantidad": 8938, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 5, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 5, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 5, "anio": 2026, "cantidad": 9811, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 6, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 6, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 6, "anio": 2026, "cantidad": 11510, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 7, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 7, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 7, "anio": 2026, "cantidad": 11342, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "trascodificacion", "mes": 8, "anio": 2026, "cantidad": 5500, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "btb", "mes": 8, "anio": 2026, "cantidad": 2057, "presupuesto_id": 1},
-            {"producto_id": "J14968C", "tipo_proceso": "renovacion_anticipada", "mes": 8, "anio": 2026, "cantidad": 3000, "presupuesto_id": 1},
-        ]
-
-        for item in bau_seed_data:
-            # Verificar si el producto existe
-            prod = db.query(Producto).filter(Producto.id == item["producto_id"]).first()
-            if not prod:
-                continue
-
-            # Determinar presupuesto
-            pres_id = None
-            if item["presupuesto_id"] == 1 and pym01:
-                pres_id = pym01.id
-
-            # Insertar o actualizar
-            exists = db.query(ProcesoBAU).filter_by(
-                producto_id=item["producto_id"], tipo_proceso=item["tipo_proceso"], mes=item["mes"], anio=item["anio"]
-            ).first()
-            
-            if not exists:
-                db.add(ProcesoBAU(
+        # 7. Procesos BAU
+        if "procesos_bau" in seed_data:
+            for item in seed_data["procesos_bau"]:
+                existing = db.query(ProcesoBAU).filter_by(
                     producto_id=item["producto_id"], 
                     tipo_proceso=item["tipo_proceso"], 
                     mes=item["mes"], 
-                    anio=item["anio"],
-                    cantidad=item["cantidad"], 
-                    presupuesto_id=pres_id
-                ))
-        
-        db.commit()
-        print("✓ Procesos BAU creados")
+                    anio=item["anio"]
+                ).first()
+                if not existing:
+                    data = item.copy()
+                    if "id" in data: del data["id"]
+                    if "created_at" in data: del data["created_at"]
+                    db.add(ProcesoBAU(**data))
+            db.commit()
+            print("✓ Procesos BAU verificados/creados")
 
-        print("✅ Seed completado exitosamente!")
+        # 8. Ordenes de Compra
+        if "ordenes_compra" in seed_data:
+            for item in seed_data["ordenes_compra"]:
+                existing = db.query(OrdenCompra).filter(OrdenCompra.id == item["id"]).first()
+                if not existing:
+                    data = item.copy()
+                    # Fechas
+                    if "fecha_orden" in data: data["fecha_orden"] = parse_date(data["fecha_orden"])
+                    if "fecha_entrega" in data: data["fecha_entrega"] = parse_date(data["fecha_entrega"])
+                    if "created_at" in data: del data["created_at"]
+                    if "updated_at" in data: del data["updated_at"]
+                    
+                    db.add(OrdenCompra(**data))
+            db.commit()
+            print("✓ Ordenes de Compra verificadas/creadas")
+
+        print("✅ Seed completado exitosamente con datos reales!")
 
     except Exception as e:
         print(f"Error seeding database: {e}")
