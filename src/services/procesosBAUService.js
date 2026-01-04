@@ -13,7 +13,7 @@ export const procesosBAUService = {
     if (filters.presupuesto_id) params.append('presupuesto_id', filters.presupuesto_id);
 
     const queryString = params.toString();
-    const url = queryString ? `/procesos-bau?${queryString}` : '/procesos-bau';
+    const url = queryString ? `/procesos_bau?${queryString}` : '/procesos_bau';
     const response = await api.get(url);
     return response.data;
   },
@@ -22,7 +22,7 @@ export const procesosBAUService = {
    * Obtener proceso por ID
    */
   async getById(id) {
-    const response = await api.get(`/procesos-bau/${id}`);
+    const response = await api.get(`/procesos_bau/${id}`);
     return response.data;
   },
 
@@ -30,7 +30,7 @@ export const procesosBAUService = {
    * Crear nuevo proceso BAU
    */
   async create(data) {
-    const response = await api.post('/procesos-bau', data);
+    const response = await api.post('/procesos_bau', data);
     return response.data;
   },
 
@@ -38,7 +38,7 @@ export const procesosBAUService = {
    * Actualizar proceso BAU
    */
   async update(id, data) {
-    const response = await api.put(`/procesos-bau/${id}`, data);
+    const response = await api.put(`/procesos_bau/${id}`, data);
     return response.data;
   },
 
@@ -46,7 +46,7 @@ export const procesosBAUService = {
    * Eliminar proceso BAU
    */
   async delete(id) {
-    const response = await api.delete(`/procesos-bau/${id}`);
+    const response = await api.delete(`/procesos_bau/${id}`);
     return response.data;
   },
 
@@ -54,7 +54,7 @@ export const procesosBAUService = {
    * Obtener historial de cambios de un proceso
    */
   async getHistorial(procesoId) {
-    const response = await api.get(`/procesos-bau/historial/${procesoId}`);
+    const response = await api.get(`/procesos_bau/historial/${procesoId}`);
     return response.data;
   },
 
@@ -64,7 +64,7 @@ export const procesosBAUService = {
   async uploadExcel(file) {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await api.post('/procesos-bau/upload-excel', formData, {
+    const response = await api.post('/procesos_bau/upload-excel', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -76,7 +76,7 @@ export const procesosBAUService = {
    * Cargar lote de datos procesados desde frontend
    */
   async uploadBatch(data) {
-    const response = await api.post('/procesos-bau/upload-batch', data);
+    const response = await api.post('/procesos_bau/upload-batch', data);
     return response.data;
   }
 };
@@ -88,7 +88,7 @@ export const presupuestosService = {
    * Listar presupuestos (por defecto solo activos)
    */
   async getAll(activosOnly = true) {
-    const response = await api.get(`/procesos-bau/presupuestos?activos_only=${activosOnly}`);
+    const response = await api.get(`/procesos_bau/presupuestos?activos_only=${activosOnly}`);
     return response.data;
   },
 
@@ -96,7 +96,7 @@ export const presupuestosService = {
    * Crear nuevo presupuesto
    */
   async create(data) {
-    const response = await api.post('/procesos-bau/presupuestos', data);
+    const response = await api.post('/procesos_bau/presupuestos', data);
     return response.data;
   },
 
@@ -104,7 +104,7 @@ export const presupuestosService = {
    * Actualizar presupuesto
    */
   async update(id, data) {
-    const response = await api.put(`/procesos-bau/presupuestos/${id}`, data);
+    const response = await api.put(`/procesos_bau/presupuestos/${id}`, data);
     return response.data;
   },
 
@@ -112,7 +112,7 @@ export const presupuestosService = {
    * Desactivar presupuesto
    */
   async delete(id) {
-    const response = await api.delete(`/procesos-bau/presupuestos/${id}`);
+    const response = await api.delete(`/procesos_bau/presupuestos/${id}`);
     return response.data;
   }
 };

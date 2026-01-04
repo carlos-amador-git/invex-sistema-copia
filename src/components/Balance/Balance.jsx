@@ -301,7 +301,11 @@ const Balance = ({ selectedProduct, setSelectedProduct }) => {
             <div className="spb-stats">
               <div className="spb-stat">
                 <span className="spb-stat-label">Proveedor</span>
-                <span className="spb-stat-value">{productoActual.proveedor || 'N/A'}</span>
+                <span className="spb-stat-value">
+                  {(productoActual.proveedor && typeof productoActual.proveedor === 'object' 
+                    ? productoActual.proveedor.nombre 
+                    : productoActual.proveedor) || 'N/A'}
+                </span>
               </div>
               <div className="spb-stat">
                 <span className="spb-stat-label">Costo Unit.</span>

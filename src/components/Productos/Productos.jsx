@@ -89,17 +89,27 @@ const Productos = () => {
     return prov?.nombre || 'N/A';
   };
 
+  const resolveProveedorNombre = (proveedor) => {
+    if (!proveedor) return null;
+    if (typeof proveedor === 'string') return proveedor;
+    if (typeof proveedor === 'object') {
+      // Ensure we return a primitive string, even if name is missing or object
+      return proveedor.nombre ? String(proveedor.nombre) : 'Nombre no disponible';
+    }
+    return String(proveedor);
+  };
+
   const productosFiltrados = productos.filter(p => {
     const matchBusqueda = busqueda === '' ||
       p.id?.toLowerCase().includes(busqueda.toLowerCase()) ||
       p.nombre?.toLowerCase().includes(busqueda.toLowerCase());
-    const matchProveedor = filtroProveedor === 'todos' || p.proveedor === filtroProveedor;
+    const matchProveedor = filtroProveedor === 'todos' || resolveProveedorNombre(p.proveedor) === filtroProveedor;
     const matchTipo = filtroTipo === 'todos' || p.tipo === filtroTipo;
     return matchBusqueda && matchProveedor && matchTipo;
   });
 
   const tiposUnicos = [...new Set(productos.map(p => p.tipo).filter(Boolean))];
-  const proveedoresUnicos = [...new Set(productos.map(p => p.proveedor).filter(Boolean))];
+  const proveedoresUnicos = [...new Set(productos.map(p => resolveProveedorNombre(p.proveedor)).filter(Boolean))];
 
   const calcularStats = () => {
     const totalProductos = productos.length;
@@ -413,7 +423,7 @@ const Productos = () => {
                   <div className="pc-info">
                     <div className="pc-info-row">
                       <Building2 size={14} />
-                      <span>{producto.proveedor || 'N/A'}</span>
+                      <span>{resolveProveedorNombre(producto.proveedor) || 'N/A'}</span>
                     </div>
                     <div className="pc-info-row">
                       <Clock size={14} />
@@ -490,7 +500,7 @@ const Productos = () => {
                           <span className="table-tag tipo">{producto.tipo}</span>
                         )}
                       </td>
-                      <td>{producto.proveedor || 'N/A'}</td>
+                      <td>{resolveProveedorNombre(producto.proveedor) || 'N/A'}</td>
                       <td className="cell-number">{producto.tiempo_entrega || 8} sem</td>
                       <td className="cell-number">${(producto.costo_unitario || 0).toFixed(2)}</td>
                       <td>

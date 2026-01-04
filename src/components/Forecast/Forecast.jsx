@@ -294,7 +294,7 @@ const Forecast = ({ selectedProduct, setSelectedProduct, setActiveModule, setPen
           ))}
         </select>
         <div className="psb-info">
-          <span className="psb-provider">{productoActual.proveedor || 'N/A'}</span>
+          <span className="psb-provider">{productoActual.proveedor?.nombre || 'N/A'}</span>
         </div>
       </div>
 

@@ -22,7 +22,9 @@ const ESTATUS_CONFIG = {
   'EN PROCESO': { color: 'primary', icon: Truck, label: 'En Proceso', order: 3 },
   'COMPLETADA': { color: 'success', icon: CheckCircle, label: 'Completada', order: 4 },
   'PAGADA': { color: 'green', icon: CheckCircle, label: 'Pagada', order: 5 },
-  'CANCELADA': { color: 'danger', icon: XCircle, label: 'Cancelada', order: 6 }
+  'CANCELADA': { color: 'danger', icon: XCircle, label: 'Cancelada', order: 6 },
+  'NUEVA COMPRA': { color: 'info', icon: ShoppingCart, label: 'Nueva Compra', order: 1 },
+  'EN PRODUCCION': { color: 'primary', icon: Truck, label: 'En Producción', order: 3 }
 };
 
 const Ordenes = ({ pendingOrden, setPendingOrden }) => {

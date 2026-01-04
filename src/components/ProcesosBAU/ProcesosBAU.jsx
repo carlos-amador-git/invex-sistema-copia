@@ -424,6 +424,12 @@ const ProcesosBAU = () => {
   const getTipoColor = (tipo) => TIPOS_PROCESO.find(t => t.value === tipo)?.color || '#666';
   const getPresupuestoCodigo = (id) => presupuestos.find(p => p.id === id)?.codigo || '';
 
+  const getProductPresupuestos = (productId, year) => {
+    const productProcesos = procesos.filter(p => p.producto_id === productId && p.anio === year);
+    const uniquePresupuestoIds = [...new Set(productProcesos.map(p => p.presupuesto_id).filter(Boolean))];
+    return uniquePresupuestoIds.map(id => presupuestos.find(p => p.id === id)?.codigo).filter(Boolean).sort();
+  };
+
   const productIdsWithDataForYear = getProductIdsWithDataForYear();
   const productIdsWithAnyData = getProductIdsWithAnyData();
   const tableData = buildTableData();
@@ -489,6 +495,8 @@ const ProcesosBAU = () => {
             productos.map(p => {
               const hasDataForYear = productIdsWithDataForYear.has(p.id);
               const hasAnyData = productIdsWithAnyData.has(p.id);
+              const productPresupuestos = hasDataForYear ? getProductPresupuestos(p.id, selectedAnio) : [];
+              
               return (
                 <button
                   key={p.id}
@@ -497,8 +505,19 @@ const ProcesosBAU = () => {
                 >
                   <span className="product-id">{p.id}</span>
                   <span className="product-name">{p.nombre}</span>
-                  {hasDataForYear && <span className="product-badge">{selectedAnio}</span>}
-                  {!hasDataForYear && hasAnyData && <span className="product-badge other">Otro año</span>}
+                  <div className="product-badges">
+                    {hasDataForYear ? (
+                      productPresupuestos.length > 0 ? (
+                        productPresupuestos.map(code => (
+                          <span key={code} className="product-badge">{code}</span>
+                        ))
+                      ) : (
+                        <span className="product-badge">{selectedAnio}</span>
+                      )
+                    ) : (
+                      hasAnyData && <span className="product-badge other">Otro año</span>
+                    )}
+                  </div>
                 </button>
               );
             })

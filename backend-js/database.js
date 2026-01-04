@@ -1,0 +1,380 @@
+// import Database from 'better-sqlite3'; // Dynamic import
+import pg from 'pg';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const config = {
+  secretKey: process.env.SECRET_KEY || 'invex-super-secret-key-change-in-production',
+  databaseUrl: process.env.DATABASE_URL || 'sqlite://./invex.db',
+  accessTokenExpireMinutes: parseInt(process.env.ACCESS_TOKEN_EXPIRE_MINUTES) || 60,
+  refreshTokenExpireDays: parseInt(process.env.REFRESH_TOKEN_EXPIRE_DAYS) || 7,
+  bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS) || 12,
+  corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
+  algorithm: process.env.ALGORITHM || 'HS256',
+  port: parseInt(process.env.PORT) || 3001
+};
+
+let db = null;
+let isPostgres = false;
+
+// Determine DB Type
+if (config.databaseUrl.startsWith('postgres://') || config.databaseUrl.startsWith('postgresql://')) {
+  isPostgres = true;
+}
+
+// DB Wrapper to standardize interface
+class DBAdapter {
+  constructor() {
+    this.isPostgres = isPostgres;
+    this.initPromise = this.init();
+  }
+
+  async init() {
+    if (this.isPostgres) {
+      const { Pool } = pg;
+      this.pool = new Pool({
+        connectionString: config.databaseUrl,
+        ssl: { rejectUnauthorized: false } // Required for Neon
+      });
+    } else {
+      let dbPath;
+      if (process.env.VERCEL) {
+        dbPath = '/tmp/invex.db';
+      } else if (config.databaseUrl.startsWith('sqlite://')) {
+        dbPath = path.resolve(__dirname, '..', config.databaseUrl.replace('sqlite://', ''));
+      } else {
+        dbPath = path.resolve(__dirname, '..', 'invex.db');
+      }
+      
+      try {
+        const Database = (await import('better-sqlite3')).default;
+        this.sqlite = new Database(dbPath);
+        this.sqlite.pragma('journal_mode = WAL');
+      } catch (e) {
+        console.error('Failed to load better-sqlite3. Make sure it is installed if using SQLite.', e);
+        throw e;
+      }
+    }
+  }
+
+  // Convert ? to $1, $2, etc for Postgres
+  _prepareQuery(sql) {
+    if (!this.isPostgres) return sql;
+    let i = 1;
+    return sql.replace(/\?/g, () => `$${i++}`);
+  }
+
+  async query(sql, params = []) {
+    await this.initPromise;
+    if (this.isPostgres) {
+      const res = await this.pool.query(this._prepareQuery(sql), params);
+      return res.rows;
+    } else {
+      return this.sqlite.prepare(sql).all(...params);
+    }
+  }
+
+  async get(sql, params = []) {
+    await this.initPromise;
+    if (this.isPostgres) {
+      const res = await this.pool.query(this._prepareQuery(sql), params);
+      return res.rows[0];
+    } else {
+      return this.sqlite.prepare(sql).get(...params);
+    }
+  }
+
+  async run(sql, params = []) {
+    await this.initPromise;
+    if (this.isPostgres) {
+      const res = await this.pool.query(this._prepareQuery(sql), params);
+      // Try to simulate SQLite result
+      return { 
+        changes: res.rowCount, 
+        lastInsertRowid: res.rows[0]?.id || null // Assumes RETURNING id if needed
+      };
+    } else {
+      return this.sqlite.prepare(sql).run(...params);
+    }
+  }
+
+  async exec(sql) {
+    await this.initPromise;
+    if (this.isPostgres) {
+      return await this.pool.query(sql);
+    } else {
+      return this.sqlite.exec(sql);
+    }
+  }
+
+  async close() {
+    await this.initPromise;
+    if (this.isPostgres) {
+      return this.pool.end();
+    } else {
+      return this.sqlite.close();
+    }
+  }
+
+  // Legacy support helper (will throw if used directly without refactor)
+  prepare(sql) {
+    if (this.isPostgres) throw new Error("Sync prepare() not supported in Postgres mode. Use async query(), get() or run().");
+    // WARNING: accessing this.sqlite directly might fail if init is not finished or if it's async
+    // Since we are moving to async everywhere, we should avoid calling prepare() directly from outside.
+    // But for now, if we are in SQLite mode and init is done (synchronously if using require, but we are using import), this is tricky.
+    // However, better-sqlite3 is synchronous. The dynamic import is async.
+    // So prepare() cannot work synchronously if we dynamic import.
+    // We must assume that anyone calling prepare() is doing it wrongly in this new async paradigm.
+    throw new Error("Synchronous prepare() is no longer supported due to dynamic import. Use async methods.");
+  }
+}
+
+function getDb() {
+  if (!db) {
+    db = new DBAdapter();
+    initializeDatabase(db);
+  }
+  return db;
+}
+
+async function initializeDatabase(database) {
+  // We make this async but it might be called synchronously in old code. 
+  // Refactor needed: initializeDatabase should be awaited.
+  
+  const isPg = database.isPostgres;
+  
+  // Define Schema based on DB type
+  const autoIncrement = isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT";
+  const textType = isPg ? "TEXT" : "TEXT"; // Same
+  const dateDefault = isPg ? "CURRENT_TIMESTAMP" : "(datetime('now'))";
+  const intType = isPg ? "INTEGER" : "INTEGER";
+  
+  // For SQLite compatibility in Postgres, we might need adjustments
+  // But let's try to keep standard SQL
+  
+  const schema = `
+    CREATE TABLE IF NOT EXISTS roles (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      nombre TEXT UNIQUE NOT NULL,
+      descripcion TEXT,
+      area TEXT,
+      color TEXT,
+      modulos TEXT,
+      permisos TEXT,
+      created_at TEXT DEFAULT ${dateDefault}
+    );
+
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      nombre TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      rol TEXT NOT NULL,
+      face_registered INTEGER DEFAULT 0,
+      face_descriptor TEXT,
+      activo INTEGER DEFAULT 1,
+      ultimo_acceso TEXT,
+      created_at TEXT DEFAULT ${dateDefault},
+      updated_at TEXT DEFAULT ${dateDefault}
+    );
+
+    CREATE TABLE IF NOT EXISTS proveedores (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      nombre TEXT UNIQUE NOT NULL,
+      tiempo_entrega INTEGER,
+      contacto TEXT,
+      email TEXT,
+      telefono TEXT,
+      activo INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT ${dateDefault}
+    );
+
+    CREATE TABLE IF NOT EXISTS productos (
+      id TEXT PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      proveedor_id INTEGER,
+      tiempo_entrega INTEGER,
+      costo_unitario REAL,
+      marca TEXT,
+      tipo TEXT,
+      activo INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT ${dateDefault},
+      updated_at TEXT DEFAULT ${dateDefault},
+      FOREIGN KEY (proveedor_id) REFERENCES proveedores(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS inventarios (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      producto_id TEXT UNIQUE NOT NULL,
+      boveda_trabajo INTEGER DEFAULT 0,
+      boveda_principal INTEGER DEFAULT 0,
+      en_proceso_cantidad INTEGER DEFAULT 0,
+      ordenes_activas INTEGER DEFAULT 0,
+      dist_colocacion INTEGER DEFAULT 0,
+      dist_normal INTEGER DEFAULT 0,
+      dist_devoluciones INTEGER DEFAULT 0,
+      mod_colocacion INTEGER DEFAULT 0,
+      mod_stock INTEGER DEFAULT 0,
+      fecha_compra_sugerida TEXT,
+      fecha_entrega_estimada TEXT,
+      mes_alerta TEXT,
+      presupuesto_pym01 INTEGER DEFAULT 0,
+      presupuesto_adq7 INTEGER DEFAULT 0,
+      updated_at TEXT DEFAULT ${dateDefault},
+      trasco_rep INTEGER DEFAULT 0,
+      mod_normal INTEGER DEFAULT 0,
+      FOREIGN KEY (producto_id) REFERENCES productos(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS ordenes_compra (
+      id TEXT PRIMARY KEY,
+      producto_id TEXT NOT NULL,
+      proveedor_id INTEGER,
+      cantidad INTEGER,
+      presupuesto TEXT,
+      estatus TEXT,
+      fecha_orden TEXT,
+      fecha_entrega TEXT,
+      costo_total REAL,
+      created_at TEXT DEFAULT ${dateDefault},
+      updated_at TEXT DEFAULT ${dateDefault},
+      costo_unitario REAL,
+      descuento REAL,
+      requi TEXT,
+      provision TEXT,
+      validacion TEXT,
+      tipo_material TEXT,
+      caracteristica TEXT,
+      nombre_producto TEXT,
+      FOREIGN KEY (producto_id) REFERENCES productos(id),
+      FOREIGN KEY (proveedor_id) REFERENCES proveedores(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS procesos_bau (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      producto_id TEXT NOT NULL,
+      tipo_proceso TEXT NOT NULL,
+      mes TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      cantidad INTEGER DEFAULT 0,
+      presupuesto_id INTEGER,
+      created_at TEXT DEFAULT ${dateDefault},
+      updated_at TEXT DEFAULT ${dateDefault},
+      FOREIGN KEY (producto_id) REFERENCES productos(id),
+      FOREIGN KEY (presupuesto_id) REFERENCES presupuestos(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS presupuestos (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      codigo TEXT UNIQUE NOT NULL,
+      descripcion TEXT,
+      activo INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT ${dateDefault}
+    );
+
+    CREATE TABLE IF NOT EXISTS sesiones (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      usuario_id INTEGER NOT NULL,
+      refresh_token TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      revoked INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT ${dateDefault},
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS forecast (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      producto_id TEXT NOT NULL,
+      mes TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      cantidad INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT ${dateDefault},
+      updated_at TEXT DEFAULT ${dateDefault},
+      FOREIGN KEY (producto_id) REFERENCES productos(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS capturas (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      usuario_id INTEGER NOT NULL,
+      producto_id TEXT,
+      tipo_captura TEXT NOT NULL,
+      cantidad INTEGER DEFAULT 0,
+      observaciones TEXT,
+      created_at TEXT DEFAULT ${dateDefault},
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+      FOREIGN KEY (producto_id) REFERENCES productos(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS snapshots (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      tipo TEXT NOT NULL,
+      data TEXT NOT NULL,
+      created_at TEXT DEFAULT ${dateDefault}
+    );
+
+    CREATE TABLE IF NOT EXISTS materiales (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      nombre TEXT UNIQUE NOT NULL,
+      tipo TEXT,
+      unidad TEXT,
+      stock INTEGER DEFAULT 0,
+      stock_minimo INTEGER DEFAULT 0,
+      FOREIGN KEY (id) REFERENCES productos(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS colocaciones (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      orden_compra_id TEXT,
+      producto_id TEXT,
+      cantidad INTEGER,
+      fecha DATE,
+      FOREIGN KEY (orden_compra_id) REFERENCES ordenes_compra(id),
+      FOREIGN KEY (producto_id) REFERENCES productos(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS inventario_historial (
+      id INTEGER PRIMARY KEY ${isPg ? "GENERATED BY DEFAULT AS IDENTITY" : "AUTOINCREMENT"},
+      producto_id TEXT NOT NULL,
+      tipo_movimiento TEXT NOT NULL,
+      cantidad INTEGER,
+      usuario_id INTEGER,
+      observaciones TEXT,
+      created_at TEXT DEFAULT ${dateDefault},
+      FOREIGN KEY (producto_id) REFERENCES productos(id),
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    );
+  `;
+
+  // Execute schema
+  await database.exec(schema);
+
+  // Add indexes (Optional: check if exist, but IF NOT EXISTS handles it usually)
+  // SQLite supports IF NOT EXISTS for indexes. Postgres does too.
+  const indexes = `
+    CREATE INDEX IF NOT EXISTS idx_usuarios_username ON usuarios(username);
+    CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+    CREATE INDEX IF NOT EXISTS idx_productos_proveedor ON productos(proveedor_id);
+    CREATE INDEX IF NOT EXISTS idx_inventarios_producto ON inventarios(producto_id);
+    CREATE INDEX IF NOT EXISTS idx_ordenes_producto ON ordenes_compra(producto_id);
+    CREATE INDEX IF NOT EXISTS idx_procesos_bau_producto ON procesos_bau(producto_id);
+    CREATE INDEX IF NOT EXISTS idx_forecast_producto ON forecast(producto_id);
+    CREATE INDEX IF NOT EXISTS idx_capturas_usuario ON capturas(usuario_id);
+    CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id);
+  `;
+  await database.exec(indexes);
+
+  console.log('Base de datos inicializada correctamente');
+}
+
+function closeDb() {
+  if (db) {
+    db.close();
+    db = null;
+  }
+}
+
+export { getDb, closeDb, config };

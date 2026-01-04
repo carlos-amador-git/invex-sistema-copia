@@ -3,16 +3,24 @@
   "version": "1.0.0",
   "description": "Sistema de Control de Inventario de Tarjetas Bancarias",
   "private": true,
-  "proxy": "http://127.0.0.1:8000",
+  "proxy": "http://127.0.0.1:3002",
   "dependencies": {
     "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.294.0",
+    "pg": "^8.16.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
     "react-scripts": "5.0.1",
     "recharts": "^2.10.3",
     "xlsx": "^0.18.5"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^12.5.0"
   },
   "scripts": {
     "start": "react-scripts start",
